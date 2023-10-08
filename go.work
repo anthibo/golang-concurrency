@@ -1,0 +1,8 @@
+go 1.21.1
+
+use (
+	./basics
+	./dining-philosophers
+	./race-conditions/bank-balance-income
+	./race-conditions/producer-consumer
+)
