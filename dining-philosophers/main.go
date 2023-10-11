@@ -20,14 +20,14 @@ import (
 
 // Philosopher is a struct which stores an information about the philosopher
 type Philosopher struct {
-	name string
+	name      string
 	rightFork int
-	leftFork int
+	leftFork  int
 }
 
 // philosopher list of all philosophers
 
-var philosophers = []Philosopher {
+var philosophers = []Philosopher{
 	{name: "Plato", leftFork: 4, rightFork: 0},
 	{name: "Socrates", leftFork: 0, rightFork: 1},
 	{name: "Aristotle", leftFork: 1, rightFork: 2},
@@ -35,11 +35,13 @@ var philosophers = []Philosopher {
 	{name: "Locke", leftFork: 3, rightFork: 4},
 }
 
-
 var hunger = 3 // how many times does a person eat
 var eatTime = 1 * time.Second
 var thinkTime = 3 * time.Second
 var sleepTime = 1 * time.Second
+
+var oderMutex sync.Mutex
+var orderFinished []string
 
 func main() {
 	// print out a welcome message
@@ -50,26 +52,26 @@ func main() {
 	// start the meal
 	dine()
 
-
 	// print out results
 	fmt.Println("The table is empty")
+	fmt.Println("order of philosophers finished", orderFinished)
 }
 
-type ForkMap = map[int] *sync.Mutex
+type ForkMap = map[int]*sync.Mutex
 
 func dine() {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(philosophers))
-	
+
 	seated := &sync.WaitGroup{}
 	seated.Add(len(philosophers))
 
 	// forks is a map of all 5 forks
 	forks := make(ForkMap)
-	for i := 0; i < len(philosophers); i++ { 
+	for i := 0; i < len(philosophers); i++ {
 		forks[i] = &sync.Mutex{}
 	}
-	
+
 	// start the meal
 	for i := 0; i < len(philosophers); i++ {
 		// fire off a goroutine for the current philosopher
@@ -86,12 +88,38 @@ func diningProblem(philosopher Philosopher, wg *sync.WaitGroup, forks ForkMap, s
 	fmt.Printf("%s is seated at the table./n", philosopher.name)
 	seated.Done()
 
+	seated.Wait()
+
 	// eat three times
-	for i := hunger; i > 0; i --{
+	for i := hunger; i > 0; i-- {
 		// get a lock on both forks
-		forks[philosopher.leftFork].Lock()
-		fmt.Printf("%s takes the left fork.\n", philosopher.name)
-		forks[philosopher.rightFork].Lock()
-		fmt.Printf("%s takes the right fork.\n", philosopher.name)
+		if philosopher.leftFork > philosopher.rightFork {
+			forks[philosopher.rightFork].Lock()
+			fmt.Printf("%s takes the right fork.\n", philosopher.name)
+			forks[philosopher.leftFork].Lock()
+			fmt.Printf("%s takes the left fork.\n", philosopher.name)
+		} else {
+			forks[philosopher.leftFork].Lock()
+			fmt.Printf("%s takes the left fork.\n", philosopher.name)
+			forks[philosopher.rightFork].Lock()
+			fmt.Printf("%s takes the right fork.\n", philosopher.name)
+		}
+
+		fmt.Printf("%s has both forks and is eating.\n", philosopher.name)
+		time.Sleep(eatTime)
+
+		fmt.Printf("%s is thinking.\n", philosopher.name)
+		time.Sleep(thinkTime)
+		forks[philosopher.leftFork].Unlock()
+		forks[philosopher.rightFork].Unlock()
+
+		fmt.Printf("\t%s put down the forks.\n", philosopher.name)
 	}
+
+	fmt.Println(philosopher.name, "is satisfied")
+	fmt.Println(philosopher.name, "left the table")
+
+	oderMutex.Lock()
+	orderFinished = append(orderFinished, philosopher.name)
+	oderMutex.Unlock()
 }
