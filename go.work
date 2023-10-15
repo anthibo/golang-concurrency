@@ -1,8 +1,10 @@
-go 1.21.1
+go 1.21.2
 
 use (
 	./basics
+	./buffered-channels
 	./dining-philosophers
 	./race-conditions/bank-balance-income
 	./race-conditions/producer-consumer
+	./sleeping-barber
 )
